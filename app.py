@@ -1,104 +1,113 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.decomposition import PCA
+from sklearn.metrics import silhouette_score, davies_bouldin_score
+import matplotlib.pyplot as plt
 
-# Judul aplikasi
-st.title("Segmentasi Pelanggan Toko Buku")
+st.set_page_config(page_title="Sistem Segmentasi Pelanggan", layout="wide")
 
-# Membaca dataset
-df = pd.read_csv("Data Penjualan Toko Buku.csv")
+st.title("📊 Sistem Segmentasi Pelanggan")
+st.write("Upload dataset CSV untuk melakukan segmentasi pelanggan menggunakan K-Means dan Hierarchical Clustering.")
 
-# Membersihkan nama kolom
-df.columns = df.columns.str.strip()
+# Upload file
+uploaded_file = st.file_uploader("Upload file CSV", type=["csv"])
 
-# Menghapus kolom duplikat
-df = df.loc[:, ~df.columns.duplicated()]
+if uploaded_file is not None:
+    # Membaca dataset
+    df = pd.read_csv(uploaded_file)
 
-# Menampilkan nama kolom
-st.subheader("Nama Kolom Dataset")
-st.write(df.columns.tolist())
-# Menampilkan data awal
+    st.subheader("Dataset Awal")
+    st.dataframe(df.head())
 
-st.subheader("Data Awal")
-st.dataframe(df.head())
+    # Preprocessing
+    df = df.dropna()
+    df = df.drop_duplicates()
 
-# Pilih kolom yang akan digunakan
+    # Konversi tanggal jika ada
+    if "tanggal pembelian" in df.columns:
+        df["tanggal pembelian"] = pd.to_datetime(df["tanggal pembelian"])
 
-st.subheader("Pilih Kolom untuk Clustering")
+    # Membuat data customer
+    customer = df.groupby("nama_customer").agg(
+        Frekuensi_Transaksi=("id_transaksi", "count"),
+        Jumlah_Pembelian=("jumlah", "sum"),
+        Total_Belanja=("total", "sum")
+    ).reset_index()
 
-numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
+    # Penanganan outlier
+    Q1 = customer["Total_Belanja"].quantile(0.25)
+    Q3 = customer["Total_Belanja"].quantile(0.75)
+    IQR = Q3 - Q1
 
-x_col = st.selectbox("Pilih Kolom X", numeric_cols)
-y_col = st.selectbox("Pilih Kolom Y", numeric_cols)
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
 
-# Menentukan jumlah cluster
+    customer = customer[
+        (customer["Total_Belanja"] >= lower_bound) &
+        (customer["Total_Belanja"] <= upper_bound)
+    ]
 
-k = st.slider("Jumlah Cluster", 2, 5, 3)
+    # Feature untuk clustering
+    X = customer[["Frekuensi_Transaksi", "Jumlah_Pembelian", "Total_Belanja"]]
 
-# Proses clustering
+    # Normalisasi
+    scaler = MinMaxScaler()
+    X_scaled = scaler.fit_transform(X)
 
-X = df[[x_col, y_col]]
+    # K-Means
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    customer["Cluster_KMeans"] = kmeans.fit_predict(X_scaled)
 
-scaler = MinMaxScaler()
-X_scaled = scaler.fit_transform(X)
+    # Hierarchical Clustering
+    hc = AgglomerativeClustering(n_clusters=3, linkage="ward")
+    customer["Cluster_Hierarchical"] = hc.fit_predict(X_scaled)
 
-# K-Means
+    # Evaluasi
+    score_kmeans = silhouette_score(X_scaled, customer["Cluster_KMeans"])
+    score_hc = silhouette_score(X_scaled, customer["Cluster_Hierarchical"])
 
-kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-df["Cluster_KMeans"] = kmeans.fit_predict(X_scaled)
+    dbi_kmeans = davies_bouldin_score(X_scaled, customer["Cluster_KMeans"])
+    dbi_hc = davies_bouldin_score(X_scaled, customer["Cluster_Hierarchical"])
 
-# Hierarchical Clustering
+    # Menampilkan hasil evaluasi
+    st.subheader("Hasil Evaluasi Model")
 
-hc = AgglomerativeClustering(n_clusters=k)
-df["Cluster_Hierarchical"] = hc.fit_predict(X_scaled)
+    col1, col2 = st.columns(2)
 
-# Visualisasi K-Means
+    with col1:
+        st.metric("Silhouette Score K-Means", f"{score_kmeans:.4f}")
+        st.metric("Davies-Bouldin Index K-Means", f"{dbi_kmeans:.4f}")
 
-st.subheader("Visualisasi K-Means")
+    with col2:
+        st.metric("Silhouette Score Hierarchical", f"{score_hc:.4f}")
+        st.metric("Davies-Bouldin Index Hierarchical", f"{dbi_hc:.4f}")
 
-pca = PCA(n_components=2)
-X_pca = pca.fit_transform(X_scaled)
+    # Menampilkan hasil clustering
+    st.subheader("Hasil Segmentasi Pelanggan")
+    st.dataframe(customer)
 
-fig, ax = plt.subplots(figsize=(6, 4))
-scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=df["Cluster_KMeans"])
-ax.set_title("Hasil K-Means Clustering")
-st.pyplot(fig)
+    # Visualisasi K-Means
+    st.subheader("Visualisasi Cluster K-Means")
 
-# Hasil clustering
+    fig, ax = plt.subplots(figsize=(8, 5))
+    scatter = ax.scatter(
+        customer["Frekuensi_Transaksi"],
+        customer["Total_Belanja"],
+        c=customer["Cluster_KMeans"]
+    )
+    ax.set_xlabel("Frekuensi Transaksi")
+    ax.set_ylabel("Total Belanja")
+    ax.set_title("Cluster K-Means")
+    plt.colorbar(scatter, ax=ax)
 
-st.subheader("Hasil Clustering")
-st.dataframe(df)
+    st.pyplot(fig)
 
-# Karakteristik cluster
-
-st.subheader("Karakteristik Cluster K-Means")
-
-karakteristik = df.groupby("Cluster_KMeans")[[x_col, y_col]].mean().round(2)
-
-st.dataframe(karakteristik)
-
-# Menentukan golongan pelanggan
-
-# Menentukan golongan pelanggan
-cluster_tertinggi = karakteristik[y_col].idxmax()
-cluster_terendah = karakteristik[y_col].idxmin()
-
-def tentukan_golongan(cluster):
-    if cluster == cluster_tertinggi:
-        return "Pelanggan Prioritas"
-    elif cluster == cluster_terendah:
-        return "Pelanggan Berisiko"
-    else:
-        return "Pelanggan Potensial"
-
-df["Golongan_Pelanggan"] = df["Cluster_KMeans"].apply(tentukan_golongan)
-
-# Menampilkan golongan pelanggan
-
-st.subheader("Golongan Pelanggan")
-st.dataframe(df[[x_col, y_col, "Cluster_KMeans", "Golongan_Pelanggan"]])
-
-st.success("Clustering berhasil dijalankan! Pilih kolom numerik yang sesuai untuk melihat hasil segmentasi pelanggan.")
+    # Download hasil
+    csv = customer.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📥 Download Hasil Segmentasi",
+        data=csv,
+        file_name="hasil_segmentasi.csv",
+        mime="text/csv"
+    )
