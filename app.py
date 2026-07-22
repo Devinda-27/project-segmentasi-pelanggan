@@ -13,32 +13,42 @@ st.set_page_config(
 )
 
 # ======================
-# Palet warna konsisten (senada dengan Set2 yang dipakai di scatter plot)
+# Palet warna konsisten — tema GELAP (senada dengan Set2 yang dipakai di scatter plot)
 # ======================
 PALETTE = px.colors.qualitative.Set2
-ACCENT = "#66C2A5"      # hijau toska - warna utama
+ACCENT = "#66C2A5"          # hijau toska - warna utama
 ACCENT_DARK = "#3C9F84"
-BG_CARD = "#FFFFFF"
-TEXT_MUTED = "#6B7280"
+BG_APP = "#0E1117"          # background utama, senada default dark mode Streamlit
+BG_CARD = "#1B1F27"         # kartu sedikit lebih terang dari background
+BORDER_CARD = "#2E3440"
+TEXT_MAIN = "#F3F4F6"       # putih pudar untuk teks utama
+TEXT_MUTED = "#9CA3AF"      # abu-abu terang untuk teks sekunder
+PLOTLY_TEMPLATE = "plotly_dark"
 
 # ======================
-# CSS Global — supaya seluruh dashboard terasa satu "bahasa desain"
+# CSS Global — tema gelap, supaya seluruh dashboard terasa satu "bahasa desain"
 # ======================
 st.markdown(f"""
 <style>
     .stApp {{
-        background-color: #F7F9FA;
+        background-color: {BG_APP};
+        color: {TEXT_MAIN};
+    }}
+
+    /* Teks umum & markdown */
+    p, span, label, li, .stMarkdown {{
+        color: {TEXT_MAIN};
     }}
 
     /* Judul utama */
     h1 {{
-        color: #1F2937;
+        color: {TEXT_MAIN};
         font-weight: 800;
     }}
 
     /* Subjudul section */
-    h2, h3 {{
-        color: #1F2937;
+    h2, h3, h4 {{
+        color: {TEXT_MAIN};
         font-weight: 700;
         padding-top: 0.4rem;
     }}
@@ -54,48 +64,51 @@ st.markdown(f"""
     /* Kartu metric ala "modern dashboard" */
     div[data-testid="stMetric"] {{
         background-color: {BG_CARD};
-        border: 1px solid #E5E7EB;
+        border: 1px solid {BORDER_CARD};
         border-left: 5px solid {ACCENT};
         border-radius: 12px;
         padding: 1rem 1.2rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     }}
     div[data-testid="stMetric"] label {{
         color: {TEXT_MUTED} !important;
         font-weight: 600;
     }}
     div[data-testid="stMetricValue"] {{
-        color: #111827;
+        color: {TEXT_MAIN} !important;
         font-weight: 800;
     }}
 
     /* Tabel/dataframe */
     div[data-testid="stDataFrame"] {{
-        border: 1px solid #E5E7EB;
+        border: 1px solid {BORDER_CARD};
         border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     }}
 
     /* Slider label */
     .stSlider label {{
         font-weight: 600;
-        color: #1F2937;
+        color: {TEXT_MAIN};
+    }}
+    div[data-testid="stTickBarMin"], div[data-testid="stTickBarMax"] {{
+        color: {TEXT_MUTED};
     }}
 
     /* Tombol download */
     .stDownloadButton button {{
         background-color: {ACCENT};
-        color: white;
+        color: #0E1117;
         border-radius: 10px;
         border: none;
         font-weight: 700;
         padding: 0.6rem 1.4rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }}
     .stDownloadButton button:hover {{
         background-color: {ACCENT_DARK};
-        color: white;
+        color: #0E1117;
     }}
 
     /* Kartu interpretasi cluster */
@@ -103,9 +116,12 @@ st.markdown(f"""
         background-color: {BG_CARD};
         border-radius: 12px;
         padding: 1rem 1.3rem;
-        border: 1px solid #E5E7EB;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        border: 1px solid {BORDER_CARD};
+        box-shadow: 0 2px 8px rgba(0,0,0,0.35);
         margin-bottom: 0.9rem;
+    }}
+    .cluster-card h4 {{
+        color: {TEXT_MAIN};
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -118,13 +134,20 @@ def section_title(title: str):
 
 
 def style_table(df_to_style, money_cols=None, decimal_cols=None):
-    """Beri gradasi warna senada aksen hijau pada tabel supaya lebih 'modern'."""
+    """Beri gradasi warna senada aksen hijau pada tabel, dengan teks putih supaya
+    tetap terbaca di atas tema gelap."""
     money_cols = money_cols or []
     decimal_cols = decimal_cols or []
     numeric_cols = df_to_style.select_dtypes(include="number").columns.tolist()
 
-    styler = df_to_style.style.background_gradient(
-        subset=numeric_cols, cmap="Greens"
+    styler = (
+        df_to_style.style
+        .background_gradient(subset=numeric_cols, cmap="Greens", vmin=0)
+        .set_properties(**{"color": "#0E1117", "font-weight": "600"})
+        .set_properties(
+            subset=df_to_style.columns.difference(numeric_cols).tolist(),
+            **{"color": TEXT_MAIN, "background-color": BG_CARD}
+        )
     )
     fmt = {}
     for c in money_cols:
@@ -188,7 +211,9 @@ section_title("📈 Statistik Deskriptif")
 col_a, col_b = st.columns([1, 1.2])
 with col_a:
     st.dataframe(
-        df[["jumlah", "total"]].describe().style.background_gradient(cmap="Greens"),
+        df[["jumlah", "total"]].describe().style
+        .background_gradient(cmap="Greens")
+        .set_properties(**{"color": "#0E1117", "font-weight": "600"}),
         use_container_width=True
     )
 with col_b:
@@ -198,9 +223,12 @@ with col_b:
         title="Distribusi Total Transaksi"
     )
     fig_hist.update_layout(
-        title_x=0.5, template="plotly_white",
+        title_x=0.5, template=PLOTLY_TEMPLATE,
         margin=dict(l=10, r=10, t=50, b=10),
-        height=330
+        height=330,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_MAIN)
     )
     st.plotly_chart(fig_hist, use_container_width=True)
 
@@ -292,10 +320,12 @@ fig = px.scatter(
 
 fig.update_layout(
     title_x=0.5,
-    template="plotly_white",
+    template=PLOTLY_TEMPLATE,
     margin=dict(l=10, r=10, t=50, b=10),
     legend_title_text="Cluster",
-    font=dict(size=12)
+    font=dict(size=12, color=TEXT_MAIN),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)"
 )
 
 fig.update_traces(
@@ -331,10 +361,13 @@ with col_b:
         title="Top 10 Pelanggan"
     )
     fig_top.update_layout(
-        title_x=0.5, template="plotly_white",
+        title_x=0.5, template=PLOTLY_TEMPLATE,
         margin=dict(l=10, r=10, t=50, b=10),
         height=380, yaxis_title="", xaxis_title="Total Belanja (Rp)",
-        coloraxis_showscale=False
+        coloraxis_showscale=False,
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_MAIN)
     )
     st.plotly_chart(fig_top, use_container_width=True)
 
@@ -367,9 +400,12 @@ with col_b:
         title="Rata-rata Belanja per Cluster"
     )
     fig_summary.update_layout(
-        title_x=0.5, template="plotly_white",
+        title_x=0.5, template=PLOTLY_TEMPLATE,
         margin=dict(l=10, r=10, t=50, b=10),
-        height=380, showlegend=False, xaxis_title="Cluster", yaxis_title="Rata-rata Belanja (Rp)"
+        height=380, showlegend=False, xaxis_title="Cluster", yaxis_title="Rata-rata Belanja (Rp)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=TEXT_MAIN)
     )
     st.plotly_chart(fig_summary, use_container_width=True)
 
