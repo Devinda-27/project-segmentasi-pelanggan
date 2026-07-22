@@ -80,16 +80,17 @@ st.dataframe(karakteristik)
 
 # Menentukan golongan pelanggan
 
+# Menentukan golongan pelanggan
 cluster_tertinggi = karakteristik[y_col].idxmax()
 cluster_terendah = karakteristik[y_col].idxmin()
 
 def tentukan_golongan(cluster):
-if cluster == cluster_tertinggi:
-return "Pelanggan Prioritas"
-elif cluster == cluster_terendah:
-return "Pelanggan Berisiko"
-else:
-return "Pelanggan Potensial"
+    if cluster == cluster_tertinggi:
+        return "Pelanggan Prioritas"
+    elif cluster == cluster_terendah:
+        return "Pelanggan Berisiko"
+    else:
+        return "Pelanggan Potensial"
 
 df["Golongan_Pelanggan"] = df["Cluster_KMeans"].apply(tentukan_golongan)
 
