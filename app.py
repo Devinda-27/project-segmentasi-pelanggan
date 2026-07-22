@@ -140,3 +140,49 @@ st.write("""
 - **Cluster dengan Frekuensi_Transaksi tinggi** menunjukkan pelanggan yang sering bertransaksi.
 - **Cluster dengan nilai rendah** dapat menjadi target promosi untuk meningkatkan loyalitas pelanggan.
 """)
+
+# Karakteristik cluster K-Means
+karakteristik_kmeans = customer.groupby("Cluster_KMeans")[[
+    "Frekuensi_Transaksi",
+    "Jumlah_Pembelian",
+    "Total_Belanja"
+]].mean()
+
+# Menentukan cluster dengan total belanja tertinggi dan terendah
+cluster_tertinggi = karakteristik_kmeans["Total_Belanja"].idxmax()
+cluster_terendah = karakteristik_kmeans["Total_Belanja"].idxmin()
+
+# Memberi label golongan pelanggan untuk K-Means
+customer["Golongan_KMeans"] = customer["Cluster_KMeans"].map(
+    lambda x: "Pelanggan Prioritas" if x == cluster_tertinggi
+    else "Pelanggan Berisiko" if x == cluster_terendah
+    else "Pelanggan Potensial"
+)
+
+# Karakteristik cluster Hierarchical
+karakteristik_hc = customer.groupby("Cluster_Hierarchical")[[
+    "Frekuensi_Transaksi",
+    "Jumlah_Pembelian",
+    "Total_Belanja"
+]].mean()
+
+cluster_hc_tertinggi = karakteristik_hc["Total_Belanja"].idxmax()
+cluster_hc_terendah = karakteristik_hc["Total_Belanja"].idxmin()
+
+# Memberi label golongan pelanggan untuk Hierarchical
+customer["Golongan_Hierarchical"] = customer["Cluster_Hierarchical"].map(
+    lambda x: "Pelanggan Prioritas" if x == cluster_hc_tertinggi
+    else "Pelanggan Berisiko" if x == cluster_hc_terendah
+    else "Pelanggan Potensial"
+)
+
+# Menampilkan hasil akhir
+st.subheader("Golongan Pelanggan Berdasarkan Clustering")
+st.dataframe(customer[[
+    "nama_customer",
+    "Frekuensi_Transaksi",
+    "Jumlah_Pembelian",
+    "Total_Belanja",
+    "Golongan_KMeans",
+    "Golongan_Hierarchical"
+]])
