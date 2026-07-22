@@ -96,17 +96,34 @@ st.markdown(f"""
         color: {TEXT_MUTED};
     }}
 
-    /* Slider — track & thumb gradasi biru */
+    /* Slider — track & thumb gradasi biru (menimpa warna merah default Streamlit) */
+    div[data-testid="stSlider"] div[data-baseweb="slider"] div {{
+        background-color: {BORDER_CARD};
+    }}
     div[data-testid="stSlider"] div[role="slider"] {{
         background-color: {ACCENT} !important;
+        border-color: {ACCENT} !important;
         box-shadow: 0 0 0 6px rgba(76,141,255,0.2) !important;
-        border: 2px solid #FFFFFF !important;
     }}
-    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div {{
+    /* Streamlit menaruh warna tema merahnya lewat inline style rgb(255, 75, 75) —
+       selector attribute + !important ini menimpanya di semua elemen slider */
+    div[data-testid="stSlider"] [style*="rgb(255, 75, 75)"],
+    div[data-testid="stSlider"] [style*="rgba(255, 75, 75"] {{
+        background-color: {ACCENT} !important;
+        background: {ACCENT} !important;
+        border-color: {ACCENT} !important;
+        box-shadow: 0 0 0 6px rgba(76,141,255,0.2) !important;
+        color: {ACCENT} !important;
+        fill: {ACCENT} !important;
+    }}
+    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div:nth-child(2) {{
         background: linear-gradient(90deg, #1F3B73 0%, {ACCENT} 100%) !important;
     }}
-    div[data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child {{
-        background-color: {BORDER_CARD} !important;
+    div[data-testid="stSliderTickBarMin"], div[data-testid="stSliderTickBarMax"] {{
+        color: {TEXT_MUTED} !important;
+    }}
+    div[data-testid="stThumbValue"] {{
+        color: {ACCENT} !important;
     }}
 
     /* Tombol download */
