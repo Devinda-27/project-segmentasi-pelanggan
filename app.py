@@ -2,109 +2,215 @@ import streamlit as st
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Sistem Segmentasi Pelanggan", layout="wide")
+st.set_page_config(page_title="Dashboard Segmentasi Pelanggan Toko Buku", layout="wide")
 
-st.title("📊 Sistem Segmentasi Pelanggan")
-st.write("Upload dataset pelanggan dalam format CSV, lalu pilih kolom yang ingin digunakan untuk proses clustering.")
+# ======================
+# Membaca dataset dari GitHub
+# ======================
+DATA_PATH = "dataset_toko_buku.csv"  # Ganti dengan nama file CSV di GitHub
 
-# Upload file
-uploaded_file = st.file_uploader("Upload file CSV", type=["csv"])
+df = pd.read_csv(DATA_PATH)
 
-if uploaded_file is not None:
-    # Membaca dataset
-    df = pd.read_csv(uploaded_file)
+# ======================
+# Header
+# ======================
+st.title("📚 Dashboard Segmentasi Pelanggan Toko Buku")
+st.markdown("""
+Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan mengelompokkan pelanggan berdasarkan pola pembelian menggunakan **K-Means Clustering**.
+""")
 
-    st.subheader("Preview Dataset")
-    st.dataframe(df.head())
+# ======================
+# Ringkasan Dataset
+# ======================
+st.subheader("📊 Ringkasan Dataset")
 
-    # Membersihkan data
-    df = df.dropna()
-    df = df.drop_duplicates()
+col1, col2, col3, col4 = st.columns(4)
 
-    st.success("Data berhasil dibersihkan dari nilai kosong dan duplikat.")
+col1.metric("Jumlah Transaksi", df["id_transaksi"].nunique())
+col2.metric("Jumlah Pelanggan", df["nama_customer"].nunique())
+col3.metric("Jumlah Buku Terjual", int(df["jumlah"].sum()))
+col4.metric("Total Pendapatan", f"Rp {df['total'].sum():,.0f}")
 
-    # Memilih kolom ID pelanggan
-    customer_col = st.selectbox(
-        "Pilih kolom ID/Nama Pelanggan",
-        options=df.columns
-    )
+# ======================
+# Preview Dataset
+# ======================
+st.subheader("📋 Preview Dataset")
+st.dataframe(df.head())
 
-    # Memilih kolom numerik untuk clustering
-    numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+# ======================
+# Statistik Deskriptif
+# ======================
+st.subheader("📈 Statistik Deskriptif")
+st.dataframe(df.describe())
 
-    selected_features = st.multiselect(
-        "Pilih kolom numerik untuk clustering",
-        options=numeric_columns,
-        default=numeric_columns[:3] if len(numeric_columns) >= 3 else numeric_columns
-    )
+# ======================
+# Pembersihan Data
+# ======================
+st.subheader("🧹 Pembersihan Data")
 
-    if len(selected_features) >= 2:
-        # Membuat data pelanggan berdasarkan kolom yang dipilih
-        customer = df.groupby(customer_col)[selected_features].sum().reset_index()
+missing_values = df.isnull().sum().sum()
+duplicate_values = df.duplicated().sum()
 
-        st.subheader("Data Pelanggan Setelah Agregasi")
-        st.dataframe(customer.head())
+col1, col2 = st.columns(2)
+col1.metric("Data Kosong", int(missing_values))
+col2.metric("Data Duplikat", int(duplicate_values))
 
-        # Memilih jumlah cluster
-        n_clusters = st.slider(
-            "Pilih jumlah cluster (n_cluster)",
-            min_value=2,
-            max_value=10,
-            value=3,
-            step=1
+# Hapus data kosong dan duplikat
+df = df.dropna()
+df = df.drop_duplicates()
+
+# ======================
+# Membuat Data Pelanggan
+# ======================
+customer = df.groupby("nama_customer").agg(
+    Frekuensi_Transaksi=("id_transaksi", "nunique"),
+    Jumlah_Buku=("jumlah", "sum"),
+    Total_Belanja=("total", "sum")
+).reset_index()
+
+# ======================
+# Analisis Perilaku Pelanggan
+# ======================
+st.subheader("👥 Analisis Perilaku Pelanggan")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Rata-rata Frekuensi", f"{customer['Frekuensi_Transaksi'].mean():.2f}")
+col2.metric("Rata-rata Buku Dibeli", f"{customer['Jumlah_Buku'].mean():.2f}")
+col3.metric("Rata-rata Total Belanja", f"Rp {customer['Total_Belanja'].mean():,.0f}")
+
+# ======================
+# Pilih jumlah cluster
+# ======================
+st.subheader("⚙️ Pengaturan Clustering")
+
+n_clusters = st.slider(
+    "Pilih jumlah cluster pelanggan",
+    min_value=2,
+    max_value=10,
+    value=3
+)
+
+# ======================
+# Normalisasi dan Clustering
+# ======================
+X = customer[["Frekuensi_Transaksi", "Jumlah_Buku", "Total_Belanja"]]
+
+scaler = MinMaxScaler()
+X_scaled = scaler.fit_transform(X)
+
+kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+customer["Cluster"] = kmeans.fit_predict(X_scaled)
+
+# ======================
+# Evaluasi Model
+# ======================
+silhouette = silhouette_score(X_scaled, customer["Cluster"])
+dbi = davies_bouldin_score(X_scaled, customer["Cluster"])
+
+st.subheader("📏 Evaluasi Model")
+
+col1, col2 = st.columns(2)
+col1.metric("Silhouette Score", f"{silhouette:.4f}")
+col2.metric("Davies-Bouldin Index", f"{dbi:.4f}")
+
+# ======================
+# Hasil Segmentasi
+# ======================
+st.subheader("📌 Hasil Segmentasi Pelanggan")
+st.dataframe(customer)
+
+# ======================
+# Visualisasi Cluster
+# ======================
+st.subheader("🎨 Visualisasi Cluster")
+
+fig, ax = plt.subplots(figsize=(8, 5))
+scatter = ax.scatter(
+    customer["Frekuensi_Transaksi"],
+    customer["Total_Belanja"],
+    c=customer["Cluster"]
+)
+
+ax.set_xlabel("Frekuensi Transaksi")
+ax.set_ylabel("Total Belanja")
+ax.set_title("Cluster Pelanggan Toko Buku")
+plt.colorbar(scatter, ax=ax)
+
+st.pyplot(fig)
+
+# ======================
+# Distribusi Cluster
+# ======================
+st.subheader("📊 Distribusi Pelanggan per Cluster")
+
+cluster_counts = customer["Cluster"].value_counts().sort_index()
+
+fig2, ax2 = plt.subplots(figsize=(6, 4))
+ax2.bar(cluster_counts.index.astype(str), cluster_counts.values)
+ax2.set_xlabel("Cluster")
+ax2.set_ylabel("Jumlah Pelanggan")
+ax2.set_title("Distribusi Pelanggan per Cluster")
+
+st.pyplot(fig2)
+
+# ======================
+# Top 10 Pelanggan
+# ======================
+st.subheader("🏆 Top 10 Pelanggan dengan Total Belanja Tertinggi")
+
+top_customers = customer.sort_values(by="Total_Belanja", ascending=False).head(10)
+st.dataframe(top_customers)
+
+# ======================
+# Ringkasan Cluster
+# ======================
+st.subheader("📝 Ringkasan Cluster")
+
+summary = customer.groupby("Cluster").agg(
+    Jumlah_Pelanggan=("nama_customer", "count"),
+    Rata_Frekuensi=("Frekuensi_Transaksi", "mean"),
+    Rata_Jumlah_Buku=("Jumlah_Buku", "mean"),
+    Rata_Total_Belanja=("Total_Belanja", "mean")
+).reset_index()
+
+st.dataframe(summary)
+
+# ======================
+# Interpretasi Cluster
+# ======================
+st.subheader("💡 Interpretasi Cluster")
+
+for i in range(n_clusters):
+    row = summary[summary["Cluster"] == i].iloc[0]
+
+    st.write(f"### Cluster {i}")
+
+    if row["Rata_Total_Belanja"] > summary["Rata_Total_Belanja"].mean():
+        st.success(
+            "Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi."
         )
-
-        # Normalisasi data
-        scaler = MinMaxScaler()
-        X_scaled = scaler.fit_transform(customer[selected_features])
-
-        # Proses K-Means
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        customer["Cluster"] = kmeans.fit_predict(X_scaled)
-
-        # Evaluasi model
-        silhouette = silhouette_score(X_scaled, customer["Cluster"])
-
-        st.subheader("Hasil Evaluasi")
-        st.metric("Silhouette Score", f"{silhouette:.4f}")
-
-        # Menampilkan hasil clustering
-        st.subheader("Hasil Segmentasi Pelanggan")
-        st.dataframe(customer)
-
-        # Visualisasi cluster menggunakan dua fitur pertama
-        st.subheader("Visualisasi Cluster")
-
-        fig, ax = plt.subplots(figsize=(8, 5))
-        scatter = ax.scatter(
-            customer[selected_features[0]],
-            customer[selected_features[1]],
-            c=customer["Cluster"]
+    elif row["Rata_Frekuensi"] > summary["Rata_Frekuensi"].mean():
+        st.info(
+            "Pelanggan Potensial: cukup sering bertransaksi dan berpotensi menjadi pelanggan loyal."
         )
-
-        ax.set_xlabel(selected_features[0])
-        ax.set_ylabel(selected_features[1])
-        ax.set_title("Visualisasi Cluster Pelanggan")
-        plt.colorbar(scatter, ax=ax)
-
-        st.pyplot(fig)
-
-        # Ringkasan cluster
-        st.subheader("Ringkasan Cluster")
-        summary = customer.groupby("Cluster")[selected_features].mean()
-        st.dataframe(summary)
-
-        # Download hasil
-        csv = customer.to_csv(index=False).encode("utf-8")
-        st.download_button(
-            label="📥 Download Hasil Segmentasi",
-            data=csv,
-            file_name="hasil_segmentasi.csv",
-            mime="text/csv"
-        )
-
     else:
-        st.warning("Pilih minimal 2 kolom numerik untuk melakukan clustering.")
+        st.warning(
+            "Pelanggan Pasif: jarang bertransaksi dan perlu strategi promosi untuk meningkatkan pembelian."
+        )
+
+# ======================
+# Download Hasil
+# ======================
+st.subheader("📥 Download Hasil Segmentasi")
+
+csv = customer.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download Hasil Segmentasi CSV",
+    data=csv,
+    file_name="hasil_segmentasi_pelanggan_toko_buku.csv",
+    mime="text/csv"
+)
