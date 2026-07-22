@@ -3,225 +3,99 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans, AgglomerativeClustering
-from sklearn.metrics import silhouette_score, davies_bouldin_score
 from sklearn.decomposition import PCA
-from scipy.cluster.hierarchy import linkage, dendrogram
 
-=========================
-JUDUL APLIKASI
-=========================
+# Judul aplikasi
 
-st.title("Aplikasi Segmentasi Pelanggan Toko Buku")
-st.write("""
-Aplikasi ini digunakan untuk mengelompokkan pelanggan toko buku berdasarkan
-karakteristik pembelian menggunakan algoritma K-Means dan Hierarchical Clustering.
-""")
+st.title("Segmentasi Pelanggan Toko Buku")
 
-=========================
-MEMBACA DATASET
-=========================
+# Membaca dataset
 
 df = pd.read_csv("Data Penjualan Toko Buku.csv")
 
-st.subheader("Dataset Penjualan Toko Buku")
+# Menampilkan nama kolom
+
+st.subheader("Nama Kolom Dataset")
+st.write(df.columns.tolist())
+
+# Menampilkan data awal
+
+st.subheader("Data Awal")
 st.dataframe(df.head())
 
-=========================
-PREPROCESSING DATA
-=========================
+# Pilih kolom yang akan digunakan
 
-st.subheader("Preprocessing Data")
+st.subheader("Pilih Kolom untuk Clustering")
 
-Menghapus missing value dan duplikat
+numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
-df = df.dropna()
-df = df.drop_duplicates()
+x_col = st.selectbox("Pilih Kolom X", numeric_cols)
+y_col = st.selectbox("Pilih Kolom Y", numeric_cols)
 
-Mengubah tanggal pembelian menjadi format datetime
+# Menentukan jumlah cluster
 
-df["tanggal pembelian"] = pd.to_datetime(df["tanggal pembelian"])
+k = st.slider("Jumlah Cluster", 2, 5, 3)
 
-Membuat data customer
+# Proses clustering
 
-customer = df.groupby("nama_customer").agg(
-Frekuensi_Transaksi=("id_transaksi", "count"),
-Jumlah_Pembelian=("jumlah", "sum"),
-Total_Belanja=("total", "sum")
-).reset_index()
-
-st.write("Data pelanggan setelah agregasi:")
-st.dataframe(customer.head())
-
-=========================
-NORMALISASI DATA
-=========================
-
-X = customer[["Frekuensi_Transaksi", "Jumlah_Pembelian", "Total_Belanja"]]
+X = df[[x_col, y_col]]
 
 scaler = MinMaxScaler()
 X_scaled = scaler.fit_transform(X)
 
-=========================
-K-MEANS CLUSTERING
-=========================
+# K-Means
 
-st.subheader("Hasil K-Means Clustering")
+kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+df["Cluster_KMeans"] = kmeans.fit_predict(X_scaled)
 
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-customer["Cluster_KMeans"] = kmeans.fit_predict(X_scaled)
+# Hierarchical Clustering
 
-=========================
-HIERARCHICAL CLUSTERING
-=========================
+hc = AgglomerativeClustering(n_clusters=k)
+df["Cluster_Hierarchical"] = hc.fit_predict(X_scaled)
 
-st.subheader("Hasil Hierarchical Clustering")
+# Visualisasi K-Means
 
-hc = AgglomerativeClustering(n_clusters=3, linkage="ward")
-customer["Cluster_Hierarchical"] = hc.fit_predict(X_scaled)
-
-=========================
-VISUALISASI DENGAN PCA
-=========================
+st.subheader("Visualisasi K-Means")
 
 pca = PCA(n_components=2)
 X_pca = pca.fit_transform(X_scaled)
 
-Visualisasi K-Means
+fig, ax = plt.subplots(figsize=(6, 4))
+scatter = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=df["Cluster_KMeans"])
+ax.set_title("Hasil K-Means Clustering")
+st.pyplot(fig)
 
-fig1, ax1 = plt.subplots(figsize=(6, 4))
-scatter1 = ax1.scatter(
-X_pca[:, 0],
-X_pca[:, 1],
-c=customer["Cluster_KMeans"]
-)
-ax1.set_title("Visualisasi K-Means")
-ax1.set_xlabel("PC1")
-ax1.set_ylabel("PC2")
-st.pyplot(fig1)
+# Hasil clustering
 
-Visualisasi Hierarchical
+st.subheader("Hasil Clustering")
+st.dataframe(df)
 
-fig2, ax2 = plt.subplots(figsize=(6, 4))
-scatter2 = ax2.scatter(
-X_pca[:, 0],
-X_pca[:, 1],
-c=customer["Cluster_Hierarchical"]
-)
-ax2.set_title("Visualisasi Hierarchical Clustering")
-ax2.set_xlabel("PC1")
-ax2.set_ylabel("PC2")
-st.pyplot(fig2)
+# Karakteristik cluster
 
-=========================
-DENDROGRAM
-=========================
+st.subheader("Karakteristik Cluster K-Means")
 
-st.subheader("Dendrogram Hierarchical Clustering")
+karakteristik = df.groupby("Cluster_KMeans")[[x_col, y_col]].mean().round(2)
 
-linked = linkage(X_scaled, method="ward")
+st.dataframe(karakteristik)
 
-fig3, ax3 = plt.subplots(figsize=(10, 5))
-dendrogram(linked, truncate_mode="lastp", p=20, ax=ax3)
-ax3.set_title("Dendrogram")
-st.pyplot(fig3)
+# Menentukan golongan pelanggan
 
-=========================
-EVALUASI MODEL
-=========================
+cluster_tertinggi = karakteristik[y_col].idxmax()
+cluster_terendah = karakteristik[y_col].idxmin()
 
-st.subheader("Evaluasi Model")
+def tentukan_golongan(cluster):
+if cluster == cluster_tertinggi:
+return "Pelanggan Prioritas"
+elif cluster == cluster_terendah:
+return "Pelanggan Berisiko"
+else:
+return "Pelanggan Potensial"
 
-silhouette_kmeans = silhouette_score(X_scaled, customer["Cluster_KMeans"])
-silhouette_hc = silhouette_score(X_scaled, customer["Cluster_Hierarchical"])
+df["Golongan_Pelanggan"] = df["Cluster_KMeans"].apply(tentukan_golongan)
 
-dbi_kmeans = davies_bouldin_score(X_scaled, customer["Cluster_KMeans"])
-dbi_hc = davies_bouldin_score(X_scaled, customer["Cluster_Hierarchical"])
+# Menampilkan golongan pelanggan
 
-evaluasi = pd.DataFrame({
-"Algoritma": ["K-Means", "Hierarchical Clustering"],
-"Silhouette Score": [silhouette_kmeans, silhouette_hc],
-"Davies-Bouldin Index": [dbi_kmeans, dbi_hc]
-})
+st.subheader("Golongan Pelanggan")
+st.dataframe(df[[x_col, y_col, "Cluster_KMeans", "Golongan_Pelanggan"]])
 
-st.dataframe(evaluasi)
-
-=========================
-MENENTUKAN GOLONGAN PELANGGAN
-=========================
-Karakteristik cluster K-Means
-
-karakteristik_kmeans = customer.groupby("Cluster_KMeans")[[
-"Frekuensi_Transaksi",
-"Jumlah_Pembelian",
-"Total_Belanja"
-]].mean()
-
-cluster_tertinggi = karakteristik_kmeans["Total_Belanja"].idxmax()
-cluster_terendah = karakteristik_kmeans["Total_Belanja"].idxmin()
-
-customer["Golongan_KMeans"] = customer["Cluster_KMeans"].map(
-lambda x: "Pelanggan Prioritas" if x == cluster_tertinggi
-else "Pelanggan Berisiko" if x == cluster_terendah
-else "Pelanggan Potensial"
-)
-
-Karakteristik cluster Hierarchical
-
-karakteristik_hc = customer.groupby("Cluster_Hierarchical")[[
-"Frekuensi_Transaksi",
-"Jumlah_Pembelian",
-"Total_Belanja"
-]].mean()
-
-cluster_hc_tertinggi = karakteristik_hc["Total_Belanja"].idxmax()
-cluster_hc_terendah = karakteristik_hc["Total_Belanja"].idxmin()
-
-customer["Golongan_Hierarchical"] = customer["Cluster_Hierarchical"].map(
-lambda x: "Pelanggan Prioritas" if x == cluster_hc_tertinggi
-else "Pelanggan Berisiko" if x == cluster_hc_terendah
-else "Pelanggan Potensial"
-)
-
-=========================
-HASIL AKHIR SEGMENTASI
-=========================
-
-st.subheader("Golongan Pelanggan Berdasarkan Clustering")
-
-st.dataframe(customer[[
-"nama_customer",
-"Frekuensi_Transaksi",
-"Jumlah_Pembelian",
-"Total_Belanja",
-"Golongan_KMeans",
-"Golongan_Hierarchical"
-]])
-
-=========================
-KARAKTERISTIK TIAP GOLONGAN
-=========================
-
-st.subheader("Karakteristik Tiap Golongan (K-Means)")
-
-karakteristik_golongan = customer.groupby("Golongan_KMeans")[[
-"Frekuensi_Transaksi",
-"Jumlah_Pembelian",
-"Total_Belanja"
-]].mean().round(2)
-
-st.dataframe(karakteristik_golongan)
-
-=========================
-INTERPRETASI
-=========================
-
-st.subheader("Interpretasi Segmentasi Pelanggan")
-
-st.write("""
-
-Pelanggan Prioritas: pelanggan dengan frekuensi transaksi, jumlah pembelian, dan total belanja yang tinggi.
-Pelanggan Potensial: pelanggan dengan karakteristik pembelian sedang dan berpotensi ditingkatkan loyalitasnya.
-Pelanggan Berisiko: pelanggan dengan frekuensi transaksi dan total belanja rendah, sehingga perlu strategi promosi khusus.
-""")
-
-st.success("Analisis segmentasi pelanggan berhasil ditampilkan dengan metode K-Means dan Hierarchical Clustering.")
+st.success("Clustering berhasil dijalankan! Pilih kolom numerik yang sesuai untuk melihat hasil segmentasi pelanggan.")
