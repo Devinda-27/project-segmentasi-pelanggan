@@ -6,18 +6,20 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from sklearn.decomposition import PCA
 
 # Judul aplikasi
-
 st.title("Segmentasi Pelanggan Toko Buku")
 
 # Membaca dataset
-
 df = pd.read_csv("Data Penjualan Toko Buku.csv")
 
-# Menampilkan nama kolom
+# Membersihkan nama kolom
+df.columns = df.columns.str.strip()
 
+# Menghapus kolom duplikat
+df = df.loc[:, ~df.columns.duplicated()]
+
+# Menampilkan nama kolom
 st.subheader("Nama Kolom Dataset")
 st.write(df.columns.tolist())
-
 # Menampilkan data awal
 
 st.subheader("Data Awal")
