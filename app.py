@@ -5,17 +5,13 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Segmentasi Pelanggan Toko Buku", layout="wide")
+st.set_page_config(page_title="Sistem Segmentasi Pelanggan", layout="wide")
 
-# Header
-st.title("📚 Sistem Segmentasi Pelanggan Toko Buku")
-st.write(
-    "Sistem ini menganalisis data transaksi pelanggan toko buku dan "
-    "mengelompokkan pelanggan berdasarkan perilaku pembelian mereka."
-)
+st.title("📊 Sistem Segmentasi Pelanggan")
+st.write("Upload dataset pelanggan dalam format CSV, lalu pilih kolom yang ingin digunakan untuk proses clustering.")
 
 # Upload file
-uploaded_file = st.file_uploader("Upload Dataset Transaksi Toko Buku (CSV)", type=["csv"])
+uploaded_file = st.file_uploader("Upload file CSV", type=["csv"])
 
 if uploaded_file is not None:
     # Membaca dataset
@@ -30,96 +26,85 @@ if uploaded_file is not None:
 
     st.success("Data berhasil dibersihkan dari nilai kosong dan duplikat.")
 
-    # Membuat data pelanggan
-    customer = df.groupby("nama_customer").agg(
-        Frekuensi_Transaksi=("id_transaksi", "nunique"),
-        Jumlah_Buku=("jumlah", "sum"),
-        Total_Belanja=("total", "sum")
-    ).reset_index()
-
-    st.subheader("Data Pelanggan")
-    st.dataframe(customer)
-
-    # Pilih jumlah cluster
-    n_clusters = st.slider(
-        "Pilih jumlah cluster pelanggan",
-        min_value=2,
-        max_value=10,
-        value=3
+    # Memilih kolom ID pelanggan
+    customer_col = st.selectbox(
+        "Pilih kolom ID/Nama Pelanggan",
+        options=df.columns
     )
 
-    # Normalisasi data
-    X = customer[["Frekuensi_Transaksi", "Jumlah_Buku", "Total_Belanja"]]
+    # Memilih kolom numerik untuk clustering
+    numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
 
-    scaler = MinMaxScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # K-Means Clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-    customer["Cluster"] = kmeans.fit_predict(X_scaled)
-
-    # Evaluasi
-    silhouette = silhouette_score(X_scaled, customer["Cluster"])
-
-    st.subheader("Hasil Evaluasi")
-    st.metric("Silhouette Score", f"{silhouette:.4f}")
-
-    # Hasil clustering
-    st.subheader("Hasil Segmentasi Pelanggan")
-    st.dataframe(customer)
-
-    # Visualisasi
-    st.subheader("Visualisasi Cluster Pelanggan")
-
-    fig, ax = plt.subplots(figsize=(8, 5))
-    scatter = ax.scatter(
-        customer["Frekuensi_Transaksi"],
-        customer["Total_Belanja"],
-        c=customer["Cluster"]
+    selected_features = st.multiselect(
+        "Pilih kolom numerik untuk clustering",
+        options=numeric_columns,
+        default=numeric_columns[:3] if len(numeric_columns) >= 3 else numeric_columns
     )
 
-    ax.set_xlabel("Frekuensi Transaksi")
-    ax.set_ylabel("Total Belanja")
-    ax.set_title("Cluster Pelanggan Toko Buku")
-    plt.colorbar(scatter, ax=ax)
+    if len(selected_features) >= 2:
+        # Membuat data pelanggan berdasarkan kolom yang dipilih
+        customer = df.groupby(customer_col)[selected_features].sum().reset_index()
 
-    st.pyplot(fig)
+        st.subheader("Data Pelanggan Setelah Agregasi")
+        st.dataframe(customer.head())
 
-    # Interpretasi cluster
-    st.subheader("Interpretasi Cluster")
+        # Memilih jumlah cluster
+        n_clusters = st.slider(
+            "Pilih jumlah cluster (n_cluster)",
+            min_value=2,
+            max_value=10,
+            value=3,
+            step=1
+        )
 
-    summary = customer.groupby("Cluster").agg(
-        Jumlah_Pelanggan=("nama_customer", "count"),
-        Rata_Frekuensi=("Frekuensi_Transaksi", "mean"),
-        Rata_Jumlah_Buku=("Jumlah_Buku", "mean"),
-        Rata_Total_Belanja=("Total_Belanja", "mean")
-    ).reset_index()
+        # Normalisasi data
+        scaler = MinMaxScaler()
+        X_scaled = scaler.fit_transform(customer[selected_features])
 
-    st.dataframe(summary)
+        # Proses K-Means
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        customer["Cluster"] = kmeans.fit_predict(X_scaled)
 
-    for i in range(n_clusters):
-        st.write(f"### Cluster {i}")
+        # Evaluasi model
+        silhouette = silhouette_score(X_scaled, customer["Cluster"])
 
-        row = summary[summary["Cluster"] == i].iloc[0]
+        st.subheader("Hasil Evaluasi")
+        st.metric("Silhouette Score", f"{silhouette:.4f}")
 
-        if row["Rata_Total_Belanja"] > summary["Rata_Total_Belanja"].mean():
-            st.success(
-                "Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi."
-            )
-        else:
-            st.info(
-                "Pelanggan Potensial/Pasif: perlu strategi promosi untuk meningkatkan pembelian."
-            )
+        # Menampilkan hasil clustering
+        st.subheader("Hasil Segmentasi Pelanggan")
+        st.dataframe(customer)
 
-    # Download hasil
-    csv = customer.to_csv(index=False).encode("utf-8")
+        # Visualisasi cluster menggunakan dua fitur pertama
+        st.subheader("Visualisasi Cluster")
 
-    st.download_button(
-        label="📥 Download Hasil Segmentasi",
-        data=csv,
-        file_name="hasil_segmentasi_pelanggan_toko_buku.csv",
-        mime="text/csv"
-    )
+        fig, ax = plt.subplots(figsize=(8, 5))
+        scatter = ax.scatter(
+            customer[selected_features[0]],
+            customer[selected_features[1]],
+            c=customer["Cluster"]
+        )
 
-else:
-    st.info("Silakan upload dataset transaksi toko buku dalam format CSV.")
+        ax.set_xlabel(selected_features[0])
+        ax.set_ylabel(selected_features[1])
+        ax.set_title("Visualisasi Cluster Pelanggan")
+        plt.colorbar(scatter, ax=ax)
+
+        st.pyplot(fig)
+
+        # Ringkasan cluster
+        st.subheader("Ringkasan Cluster")
+        summary = customer.groupby("Cluster")[selected_features].mean()
+        st.dataframe(summary)
+
+        # Download hasil
+        csv = customer.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Download Hasil Segmentasi",
+            data=csv,
+            file_name="hasil_segmentasi.csv",
+            mime="text/csv"
+        )
+
+    else:
+        st.warning("Pilih minimal 2 kolom numerik untuk melakukan clustering.")
