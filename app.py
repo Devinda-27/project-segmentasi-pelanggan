@@ -117,9 +117,6 @@ st.dataframe(customer)
 # ======================
 # Visualisasi Cluster
 # ======================
-# ======================
-# Visualisasi Cluster Modern
-# ======================
 st.subheader("🎨 Visualisasi Cluster Pelanggan")
 
 fig = px.scatter(
@@ -184,9 +181,11 @@ st.dataframe(summary)
 # ======================
 # Interpretasi Cluster
 # ======================
+# ======================
+# Interpretasi Cluster Modern (Compact)
+# ======================
 st.subheader("💡 Interpretasi Cluster Pelanggan")
 
-# Nilai rata-rata keseluruhan sebagai pembanding
 avg_freq = customer["Frekuensi_Transaksi"].mean()
 avg_belanja = customer["Total_Belanja"].mean()
 
@@ -197,46 +196,56 @@ for i in range(n_clusters):
     if row["Rata_Total_Belanja"] > avg_belanja and row["Rata_Frekuensi"] > avg_freq:
         icon = "👑"
         title = "Pelanggan Loyal"
-        color = "#E8F5E9"
-        recommendation = "Berikan program loyalitas, diskon eksklusif, dan rekomendasi buku premium."
+        bg_color = "#E8F5E9"
     elif row["Rata_Frekuensi"] > avg_freq:
         icon = "🌟"
         title = "Pelanggan Potensial"
-        color = "#E3F2FD"
-        recommendation = "Tingkatkan pembelian dengan promo bundling dan rekomendasi buku yang relevan."
+        bg_color = "#E3F2FD"
     else:
         icon = "📌"
         title = "Pelanggan Pasif"
-        color = "#FFF3E0"
-        recommendation = "Gunakan strategi promosi dan diskon untuk menarik pelanggan kembali bertransaksi."
+        bg_color = "#FFF3E0"
 
-    # Membuat kartu interpretasi modern
+    # Kartu interpretasi compact
     st.markdown(
         f"""
         <div style="
-            background-color:{color};
-            padding:20px;
-            border-radius:15px;
-            margin-bottom:15px;
-            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+            background-color:{bg_color};
+            padding:12px;
+            border-radius:10px;
+            margin-bottom:10px;
+            border:1px solid #D0D0D0;
         ">
-            <h3 style="margin:0;">{icon} Cluster {i} — {title}</h3>
-            <p style="margin-top:10px;">
-                <b>Jumlah Pelanggan:</b> {int(row["Jumlah_Pelanggan"])} pelanggan
-            </p>
-            <p>
-                <b>Rata-rata Frekuensi:</b> {row["Rata_Frekuensi"]:.2f}
-            </p>
-            <p>
-                <b>Rata-rata Jumlah Buku:</b> {row["Rata_Jumlah_Buku"]:.2f}
-            </p>
-            <p>
-                <b>Rata-rata Total Belanja:</b> Rp {row["Rata_Total_Belanja"]:,.0f}
-            </p>
-            <hr style="border:0;border-top:1px solid #ddd;">
-            <p>
-                <b>Rekomendasi Strategi:</b> {recommendation}
-            </p>
+            <div style="display:flex; align-items:center; margin-bottom:8px;">
+                <span style="font-size:22px; margin-right:8px;">{icon}</span>
+                <h4 style="margin:0; color:#1F2937; font-size:18px;">
+                    Cluster {i} — {title}
+                </h4>
+            </div>
+
+            <div style="
+                display:grid;
+                grid-template-columns:1fr 1fr;
+                gap:6px;
+                font-size:14px;
+                color:#1F2937;
+            ">
+                <div><b>Pelanggan:</b> {int(row["Jumlah_Pelanggan"])}</div>
+                <div><b>Frekuensi:</b> {row["Rata_Frekuensi"]:.2f}</div>
+                <div><b>Jumlah Buku:</b> {row["Rata_Jumlah_Buku"]:.2f}</div>
+                <div><b>Belanja:</b> Rp {row["Rata_Total_Belanja"]:,.0f}</div>
+            </div>
+
+            <div style="
+                margin-top:8px;
+                padding-top:8px;
+                border-top:1px solid #D0D0D0;
+                font-size:13px;
+                color:#1F2937;
+            ">
+                <b>Strategi:</b>
+                {"Pertahankan dengan program loyalitas." if title == "Pelanggan Loyal" else "Tingkatkan dengan promo dan rekomendasi buku." if title == "Pelanggan Potensial" else "Tarik kembali dengan diskon dan promosi."}
+            </div>
         </div>
         """,
         unsafe_allow_html=True
