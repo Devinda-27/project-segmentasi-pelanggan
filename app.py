@@ -4,6 +4,7 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 import matplotlib.pyplot as plt
+import plotly.express as px
 
 st.set_page_config(page_title="Dashboard Segmentasi Pelanggan Toko Buku", layout="wide")
 
@@ -75,6 +76,22 @@ col3.metric("Rata-rata Total Belanja", f"Rp {customer['Total_Belanja'].mean():,.
 # ======================
 # Pengaturan Cluster
 # ======================
+st.markdown(
+<style>
+/* Warna slider biru modern */
+.stSlider > div > div > div > div {
+    background: linear-gradient(90deg, 2563EB, 3B82F6);
+    border-radius: 10px;
+}
+
+/* Thumb/handle slider */
+.stSlider > div > div > div > div > div {
+    background-color: 1D4ED8;
+    border: 2px solid white;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+}
+</style>
+, unsafe_allow_html=True)
 st.subheader("⚙️ Pengaturan Clustering")
 
 n_clusters = st.slider(
@@ -116,21 +133,44 @@ st.dataframe(customer)
 # ======================
 # Visualisasi Cluster
 # ======================
-st.subheader("🎨 Visualisasi Cluster")
+st.subheader("🎨 Visualisasi Cluster Pelanggan")
 
-fig, ax = plt.subplots(figsize=(8, 5))
-scatter = ax.scatter(
-    customer["Frekuensi_Transaksi"],
-    customer["Total_Belanja"],
-    c=customer["Cluster"]
+fig = px.scatter(
+    customer,
+    x="Frekuensi_Transaksi",
+    y="Total_Belanja",
+    color="Cluster",
+    size="Jumlah_Buku",
+    hover_name="nama_customer",
+    hover_data={
+        "Frekuensi_Transaksi": True,
+        "Jumlah_Buku": True,
+        "Total_Belanja": ":,.0f"
+    },
+    color_discrete_sequence=px.colors.qualitative.Set2,
+    title="Sebaran Cluster Pelanggan",
+    width=620,
+    height=400
 )
 
-ax.set_xlabel("Frekuensi Transaksi")
-ax.set_ylabel("Total Belanja")
-ax.set_title("Cluster Pelanggan Toko Buku")
-plt.colorbar(scatter, ax=ax)
+# Mengatur tampilan agar lebih modern
+fig.update_layout(
+    title_x=0.5,
+    template="plotly_white",
+    margin=dict(l=10, r=10, t=50, b=10),
+    legend_title_text="Cluster",
+    font=dict(size=12)
+)
 
-st.pyplot(fig)
+# Membuat titik lebih menarik
+fig.update_traces(
+    marker=dict(
+        opacity=0.85,
+        line=dict(width=1, color="white")
+    )
+)
+
+st.plotly_chart(fig, use_container_width=False)
 
 # ======================
 # Top 10 Pelanggan
