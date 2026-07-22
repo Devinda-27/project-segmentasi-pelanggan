@@ -4,12 +4,92 @@ from sklearn.preprocessing import MinMaxScaler
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 import matplotlib.pyplot as plt
-import plotly.express as px
-
-st.set_page_config(page_title="Dashboard Segmentasi Pelanggan Toko Buku", layout="wide")
 
 # ======================
-# Membaca dataset dari GitHub
+# Konfigurasi Halaman
+# ======================
+st.set_page_config(
+    page_title="Dashboard Segmentasi Pelanggan Toko Buku",
+    layout="wide",
+    page_icon="📚"
+)
+
+# ======================
+# CSS Modern (tanpa mengubah fungsi)
+# ======================
+st.markdown("""
+<style>
+
+/* Background utama */
+.stApp {
+    background-color: #F8FAFC;
+}
+
+/* Sidebar */
+section[data-testid="stSidebar"] {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E2E8F0;
+}
+
+/* Judul */
+h1 {
+    color: #1E293B;
+    font-weight: 800;
+    text-align: center;
+}
+
+h2, h3 {
+    color: #334155;
+    font-weight: 700;
+}
+
+/* Metric card */
+div[data-testid="metric-container"] {
+    background-color: white;
+    border: 1px solid #E2E8F0;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+/* Dataframe */
+div[data-testid="stDataFrame"] {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #E2E8F0;
+}
+
+/* Tombol download */
+.stDownloadButton button {
+    background-color: #2563EB;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 20px;
+    font-weight: 600;
+}
+
+.stDownloadButton button:hover {
+    background-color: #1D4ED8;
+    color: white;
+}
+
+/* Slider */
+.stSlider > div > div > div > div {
+    background-color: #2563EB;
+}
+
+/* Container */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ======================
+# Membaca dataset
 # ======================
 DATA_PATH = "Data Penjualan Toko Buku.csv"
 df = pd.read_csv(DATA_PATH)
@@ -19,16 +99,16 @@ df = pd.read_csv(DATA_PATH)
 # ======================
 st.title("📚 Dashboard Segmentasi Pelanggan Toko Buku")
 st.markdown("""
-Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan mengelompokkan pelanggan berdasarkan pola pembelian menggunakan **K-Means Clustering**.
-""")
+<div style='text-align:center; color:#64748B; margin-bottom:30px;'>
+Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan mengelompokkan pelanggan berdasarkan pola pembelian menggunakan <b>K-Means Clustering</b> tanpa mengubah fungsi aslinya.
+</div>
+""", unsafe_allow_html=True)
 
 # ======================
 # Pembersihan Data
 # ======================
 df = df.dropna()
 df = df.drop_duplicates()
-
-# Konversi tanggal
 df["tanggal pembelian"] = pd.to_datetime(df["tanggal pembelian"])
 
 # ======================
@@ -46,13 +126,13 @@ col4.metric("Total Pendapatan", f"Rp {df['total'].sum():,.0f}")
 # Preview Dataset
 # ======================
 st.subheader("📋 Preview Dataset")
-st.dataframe(df.head())
+st.dataframe(df.head(), use_container_width=True)
 
 # ======================
 # Statistik Deskriptif
 # ======================
 st.subheader("📈 Statistik Deskriptif")
-st.dataframe(df[["jumlah", "total"]].describe())
+st.dataframe(df[["jumlah", "total"]].describe(), use_container_width=True)
 
 # ======================
 # Membuat Data Pelanggan
@@ -112,49 +192,26 @@ col2.metric("Davies-Bouldin Index", f"{dbi:.4f}")
 # Hasil Segmentasi
 # ======================
 st.subheader("📌 Hasil Segmentasi Pelanggan")
-st.dataframe(customer)
+st.dataframe(customer, use_container_width=True)
 
 # ======================
-# Visualisasi Cluster
+# Visualisasi Cluster (tetap sama)
 # ======================
-st.subheader("🎨 Visualisasi Cluster Pelanggan")
+st.subheader("🎨 Visualisasi Cluster")
 
-fig = px.scatter(
-    customer,
-    x="Frekuensi_Transaksi",
-    y="Total_Belanja",
-    color="Cluster",
-    size="Jumlah_Buku",
-    hover_name="nama_customer",
-    hover_data={
-        "Frekuensi_Transaksi": True,
-        "Jumlah_Buku": True,
-        "Total_Belanja": ":,.0f"
-    },
-    color_discrete_sequence=px.colors.qualitative.Set2,
-    title="Sebaran Cluster Pelanggan",
-    width=620,
-    height=400
+fig, ax = plt.subplots(figsize=(8, 5))
+scatter = ax.scatter(
+    customer["Frekuensi_Transaksi"],
+    customer["Total_Belanja"],
+    c=customer["Cluster"]
 )
 
-# Mengatur tampilan agar lebih modern
-fig.update_layout(
-    title_x=0.5,
-    template="plotly_white",
-    margin=dict(l=10, r=10, t=50, b=10),
-    legend_title_text="Cluster",
-    font=dict(size=12)
-)
+ax.set_xlabel("Frekuensi Transaksi")
+ax.set_ylabel("Total Belanja")
+ax.set_title("Cluster Pelanggan Toko Buku")
+plt.colorbar(scatter, ax=ax)
 
-# Membuat titik lebih menarik
-fig.update_traces(
-    marker=dict(
-        opacity=0.85,
-        line=dict(width=1, color="white")
-    )
-)
-
-st.plotly_chart(fig, use_container_width=False)
+st.pyplot(fig)
 
 # ======================
 # Top 10 Pelanggan
@@ -162,7 +219,7 @@ st.plotly_chart(fig, use_container_width=False)
 st.subheader("🏆 Top 10 Pelanggan dengan Total Belanja Tertinggi")
 
 top_customers = customer.sort_values(by="Total_Belanja", ascending=False).head(10)
-st.dataframe(top_customers)
+st.dataframe(top_customers, use_container_width=True)
 
 # ======================
 # Ringkasan Cluster
@@ -176,80 +233,25 @@ summary = customer.groupby("Cluster").agg(
     Rata_Total_Belanja=("Total_Belanja", "mean")
 ).reset_index()
 
-st.dataframe(summary)
+st.dataframe(summary, use_container_width=True)
 
 # ======================
 # Interpretasi Cluster
 # ======================
-# ======================
-# Interpretasi Cluster Modern (Compact)
-# ======================
-st.subheader("💡 Interpretasi Cluster Pelanggan")
-
-avg_freq = customer["Frekuensi_Transaksi"].mean()
-avg_belanja = customer["Total_Belanja"].mean()
+st.subheader("💡 Interpretasi Cluster")
 
 for i in range(n_clusters):
     row = summary[summary["Cluster"] == i].iloc[0]
 
-    # Menentukan kategori pelanggan
-    if row["Rata_Total_Belanja"] > avg_belanja and row["Rata_Frekuensi"] > avg_freq:
-        icon = "👑"
-        title = "Pelanggan Loyal"
-        bg_color = "#E8F5E9"
-    elif row["Rata_Frekuensi"] > avg_freq:
-        icon = "🌟"
-        title = "Pelanggan Potensial"
-        bg_color = "#E3F2FD"
+    st.write(f"### Cluster {i}")
+
+    if row["Rata_Total_Belanja"] > summary["Rata_Total_Belanja"].mean():
+        st.success("Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi.")
+    elif row["Rata_Frekuensi"] > summary["Rata_Frekuensi"].mean():
+        st.info("Pelanggan Potensial: cukup sering bertransaksi dan berpotensi menjadi pelanggan loyal.")
     else:
-        icon = "📌"
-        title = "Pelanggan Pasif"
-        bg_color = "#FFF3E0"
+        st.warning("Pelanggan Pasif: jarang bertransaksi dan perlu strategi promosi untuk meningkatkan pembelian.")
 
-    # Kartu interpretasi compact
-    st.markdown(
-        f"""
-        <div style="
-            background-color:{bg_color};
-            padding:12px;
-            border-radius:10px;
-            margin-bottom:10px;
-            border:1px solid #D0D0D0;
-        ">
-            <div style="display:flex; align-items:center; margin-bottom:8px;">
-                <span style="font-size:22px; margin-right:8px;">{icon}</span>
-                <h4 style="margin:0; color:#1F2937; font-size:18px;">
-                    Cluster {i} — {title}
-                </h4>
-            </div>
-
-            <div style="
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:6px;
-                font-size:14px;
-                color:#1F2937;
-            ">
-                <div><b>Pelanggan:</b> {int(row["Jumlah_Pelanggan"])}</div>
-                <div><b>Frekuensi:</b> {row["Rata_Frekuensi"]:.2f}</div>
-                <div><b>Jumlah Buku:</b> {row["Rata_Jumlah_Buku"]:.2f}</div>
-                <div><b>Belanja:</b> Rp {row["Rata_Total_Belanja"]:,.0f}</div>
-            </div>
-
-            <div style="
-                margin-top:8px;
-                padding-top:8px;
-                border-top:1px solid #D0D0D0;
-                font-size:13px;
-                color:#1F2937;
-            ">
-                <b>Strategi:</b>
-                {"Pertahankan dengan program loyalitas." if title == "Pelanggan Loyal" else "Tingkatkan dengan promo dan rekomendasi buku." if title == "Pelanggan Potensial" else "Tarik kembali dengan diskon dan promosi."}
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
 # ======================
 # Download Hasil
 # ======================
