@@ -10,8 +10,7 @@ st.set_page_config(page_title="Dashboard Segmentasi Pelanggan Toko Buku", layout
 # ======================
 # Membaca dataset dari GitHub
 # ======================
-DATA_PATH = "dataset_toko_buku.csv"  # Ganti dengan nama file CSV di GitHub
-
+DATA_PATH = "Data Penjualan Toko Buku.csv"
 df = pd.read_csv(DATA_PATH)
 
 # ======================
@@ -23,12 +22,20 @@ Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan meng
 """)
 
 # ======================
+# Pembersihan Data
+# ======================
+df = df.dropna()
+df = df.drop_duplicates()
+
+# Konversi tanggal
+df["tanggal pembelian"] = pd.to_datetime(df["tanggal pembelian"])
+
+# ======================
 # Ringkasan Dataset
 # ======================
 st.subheader("📊 Ringkasan Dataset")
 
 col1, col2, col3, col4 = st.columns(4)
-
 col1.metric("Jumlah Transaksi", df["id_transaksi"].nunique())
 col2.metric("Jumlah Pelanggan", df["nama_customer"].nunique())
 col3.metric("Jumlah Buku Terjual", int(df["jumlah"].sum()))
@@ -44,23 +51,7 @@ st.dataframe(df.head())
 # Statistik Deskriptif
 # ======================
 st.subheader("📈 Statistik Deskriptif")
-st.dataframe(df.describe())
-
-# ======================
-# Pembersihan Data
-# ======================
-st.subheader("🧹 Pembersihan Data")
-
-missing_values = df.isnull().sum().sum()
-duplicate_values = df.duplicated().sum()
-
-col1, col2 = st.columns(2)
-col1.metric("Data Kosong", int(missing_values))
-col2.metric("Data Duplikat", int(duplicate_values))
-
-# Hapus data kosong dan duplikat
-df = df.dropna()
-df = df.drop_duplicates()
+st.dataframe(df[["jumlah", "total"]].describe())
 
 # ======================
 # Membuat Data Pelanggan
@@ -82,7 +73,7 @@ col2.metric("Rata-rata Buku Dibeli", f"{customer['Jumlah_Buku'].mean():.2f}")
 col3.metric("Rata-rata Total Belanja", f"Rp {customer['Total_Belanja'].mean():,.0f}")
 
 # ======================
-# Pilih jumlah cluster
+# Pengaturan Cluster
 # ======================
 st.subheader("⚙️ Pengaturan Clustering")
 
@@ -94,7 +85,7 @@ n_clusters = st.slider(
 )
 
 # ======================
-# Normalisasi dan Clustering
+# Normalisasi dan K-Means
 # ======================
 X = customer[["Frekuensi_Transaksi", "Jumlah_Buku", "Total_Belanja"]]
 
@@ -142,21 +133,6 @@ plt.colorbar(scatter, ax=ax)
 st.pyplot(fig)
 
 # ======================
-# Distribusi Cluster
-# ======================
-st.subheader("📊 Distribusi Pelanggan per Cluster")
-
-cluster_counts = customer["Cluster"].value_counts().sort_index()
-
-fig2, ax2 = plt.subplots(figsize=(6, 4))
-ax2.bar(cluster_counts.index.astype(str), cluster_counts.values)
-ax2.set_xlabel("Cluster")
-ax2.set_ylabel("Jumlah Pelanggan")
-ax2.set_title("Distribusi Pelanggan per Cluster")
-
-st.pyplot(fig2)
-
-# ======================
 # Top 10 Pelanggan
 # ======================
 st.subheader("🏆 Top 10 Pelanggan dengan Total Belanja Tertinggi")
@@ -189,27 +165,19 @@ for i in range(n_clusters):
     st.write(f"### Cluster {i}")
 
     if row["Rata_Total_Belanja"] > summary["Rata_Total_Belanja"].mean():
-        st.success(
-            "Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi."
-        )
+        st.success("Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi.")
     elif row["Rata_Frekuensi"] > summary["Rata_Frekuensi"].mean():
-        st.info(
-            "Pelanggan Potensial: cukup sering bertransaksi dan berpotensi menjadi pelanggan loyal."
-        )
+        st.info("Pelanggan Potensial: cukup sering bertransaksi dan berpotensi menjadi pelanggan loyal.")
     else:
-        st.warning(
-            "Pelanggan Pasif: jarang bertransaksi dan perlu strategi promosi untuk meningkatkan pembelian."
-        )
+        st.warning("Pelanggan Pasif: jarang bertransaksi dan perlu strategi promosi untuk meningkatkan pembelian.")
 
 # ======================
 # Download Hasil
 # ======================
-st.subheader("📥 Download Hasil Segmentasi")
-
 csv = customer.to_csv(index=False).encode("utf-8")
 
 st.download_button(
-    label="Download Hasil Segmentasi CSV",
+    label="📥 Download Hasil Segmentasi CSV",
     data=csv,
     file_name="hasil_segmentasi_pelanggan_toko_buku.csv",
     mime="text/csv"
