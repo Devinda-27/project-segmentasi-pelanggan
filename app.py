@@ -16,13 +16,13 @@ st.set_page_config(
 # Palet warna konsisten — tema GELAP (senada dengan Set2 yang dipakai di scatter plot)
 # ======================
 PALETTE = px.colors.qualitative.Set2
-ACCENT = "#66C2A5"          # hijau toska - warna utama
-ACCENT_DARK = "#3C9F84"
+ACCENT = "#4C8DFF"          # biru - warna utama
+ACCENT_DARK = "#2F6FE0"
 BG_APP = "#0E1117"          # background utama, senada default dark mode Streamlit
 BG_CARD = "#1B1F27"         # kartu sedikit lebih terang dari background
 BORDER_CARD = "#2E3440"
-TEXT_MAIN = "#F3F4F6"       # putih pudar untuk teks utama
-TEXT_MUTED = "#9CA3AF"      # abu-abu terang untuk teks sekunder
+TEXT_MAIN = "#E8EDFB"       # putih dengan sedikit rona biru untuk teks utama
+TEXT_MUTED = "#9CA9C7"      # abu-abu kebiruan untuk teks sekunder
 PLOTLY_TEMPLATE = "plotly_dark"
 
 # ======================
@@ -142,7 +142,7 @@ def style_table(df_to_style, money_cols=None, decimal_cols=None):
 
     styler = (
         df_to_style.style
-        .background_gradient(subset=numeric_cols, cmap="Greens", vmin=0)
+        .background_gradient(subset=numeric_cols, cmap="Blues", vmin=0)
         .set_properties(**{"color": "#0E1117", "font-weight": "600"})
         .set_properties(
             subset=df_to_style.columns.difference(numeric_cols).tolist(),
@@ -212,7 +212,7 @@ col_a, col_b = st.columns([1, 1.2])
 with col_a:
     st.dataframe(
         df[["jumlah", "total"]].describe().style
-        .background_gradient(cmap="Greens")
+        .background_gradient(cmap="Blues")
         .set_properties(**{"color": "#0E1117", "font-weight": "600"}),
         use_container_width=True
     )
@@ -357,7 +357,7 @@ with col_b:
         y="nama_customer",
         orientation="h",
         color="Total_Belanja",
-        color_continuous_scale="Greens",
+        color_continuous_scale="Blues",
         title="Top 10 Pelanggan"
     )
     fig_top.update_layout(
