@@ -76,22 +76,6 @@ col3.metric("Rata-rata Total Belanja", f"Rp {customer['Total_Belanja'].mean():,.
 # ======================
 # Pengaturan Cluster
 # ======================
-st.markdown(
-<style>
-/* Warna slider biru modern */
-.stSlider > div > div > div > div {
-    background: linear-gradient(90deg, 2563EB, 3B82F6);
-    border-radius: 10px;
-}
-
-/* Thumb/handle slider */
-.stSlider > div > div > div > div > div {
-    background-color: 1D4ED8;
-    border: 2px solid white;
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
-}
-</style>
-, unsafe_allow_html=True)
 st.subheader("⚙️ Pengaturan Clustering")
 
 n_clusters = st.slider(
