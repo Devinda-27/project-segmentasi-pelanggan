@@ -96,6 +96,19 @@ st.markdown(f"""
         color: {TEXT_MUTED};
     }}
 
+    /* Slider — track & thumb gradasi biru */
+    div[data-testid="stSlider"] div[role="slider"] {{
+        background-color: {ACCENT} !important;
+        box-shadow: 0 0 0 6px rgba(76,141,255,0.2) !important;
+        border: 2px solid #FFFFFF !important;
+    }}
+    div[data-testid="stSlider"] div[data-baseweb="slider"] > div > div {{
+        background: linear-gradient(90deg, #1F3B73 0%, {ACCENT} 100%) !important;
+    }}
+    div[data-testid="stSlider"] div[data-baseweb="slider"] > div:first-child {{
+        background-color: {BORDER_CARD} !important;
+    }}
+
     /* Tombol download */
     .stDownloadButton button {{
         background-color: {ACCENT};
@@ -287,55 +300,56 @@ col1.metric("Silhouette Score", f"{silhouette:.4f}")
 col2.metric("Davies-Bouldin Index", f"{dbi:.4f}")
 
 # ======================
-# Hasil Segmentasi
-# ======================
-section_title("📌 Hasil Segmentasi Pelanggan")
-st.dataframe(
-    style_table(customer, money_cols=["Total_Belanja"]),
-    use_container_width=True
-)
-
-# ======================
 # Visualisasi Cluster
 # ======================
 section_title("🎨 Visualisasi Cluster Pelanggan")
 
-fig = px.scatter(
-    customer,
-    x="Frekuensi_Transaksi",
-    y="Total_Belanja",
-    color="Cluster",
-    size="Jumlah_Buku",
-    hover_name="nama_customer",
-    hover_data={
-        "Frekuensi_Transaksi": True,
-        "Jumlah_Buku": True,
-        "Total_Belanja": ":,.0f"
-    },
-    color_discrete_sequence=PALETTE,
-    title="Sebaran Cluster Pelanggan",
-    width=620,
-    height=400
-)
+col_viz, col_tabel = st.columns([1.3, 1])
 
-fig.update_layout(
-    title_x=0.5,
-    template=PLOTLY_TEMPLATE,
-    margin=dict(l=10, r=10, t=50, b=10),
-    legend_title_text="Cluster",
-    font=dict(size=12, color=TEXT_MAIN),
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)"
-)
-
-fig.update_traces(
-    marker=dict(
-        opacity=0.85,
-        line=dict(width=1, color="white")
+with col_viz:
+    fig = px.scatter(
+        customer,
+        x="Frekuensi_Transaksi",
+        y="Total_Belanja",
+        color="Cluster",
+        size="Jumlah_Buku",
+        hover_name="nama_customer",
+        hover_data={
+            "Frekuensi_Transaksi": True,
+            "Jumlah_Buku": True,
+            "Total_Belanja": ":,.0f"
+        },
+        color_discrete_sequence=PALETTE,
+        title="Sebaran Cluster Pelanggan",
+        height=420
     )
-)
 
-st.plotly_chart(fig, use_container_width=False)
+    fig.update_layout(
+        title_x=0.5,
+        template=PLOTLY_TEMPLATE,
+        margin=dict(l=10, r=10, t=50, b=10),
+        legend_title_text="Cluster",
+        font=dict(size=12, color=TEXT_MAIN),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)"
+    )
+
+    fig.update_traces(
+        marker=dict(
+            opacity=0.85,
+            line=dict(width=1, color="white")
+        )
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+with col_tabel:
+    st.markdown(f"<p style='color:{TEXT_MUTED}; font-weight:600; margin-bottom:0.3rem;'>📌 Hasil Segmentasi Pelanggan</p>", unsafe_allow_html=True)
+    st.dataframe(
+        style_table(customer, money_cols=["Total_Belanja"]),
+        use_container_width=True,
+        height=380
+    )
 
 # ======================
 # Top 10 Pelanggan
