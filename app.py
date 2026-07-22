@@ -5,91 +5,10 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score
 import matplotlib.pyplot as plt
 
-# ======================
-# Konfigurasi Halaman
-# ======================
-st.set_page_config(
-    page_title="Dashboard Segmentasi Pelanggan Toko Buku",
-    layout="wide",
-    page_icon="📚"
-)
+st.set_page_config(page_title="Dashboard Segmentasi Pelanggan Toko Buku", layout="wide")
 
 # ======================
-# CSS Modern (tanpa mengubah fungsi)
-# ======================
-st.markdown("""
-<style>
-
-/* Background utama */
-.stApp {
-    background-color: #F8FAFC;
-}
-
-/* Sidebar */
-section[data-testid="stSidebar"] {
-    background-color: #FFFFFF;
-    border-right: 1px solid #E2E8F0;
-}
-
-/* Judul */
-h1 {
-    color: #1E293B;
-    font-weight: 800;
-    text-align: center;
-}
-
-h2, h3 {
-    color: #334155;
-    font-weight: 700;
-}
-
-/* Metric card */
-div[data-testid="metric-container"] {
-    background-color: white;
-    border: 1px solid #E2E8F0;
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
-
-/* Dataframe */
-div[data-testid="stDataFrame"] {
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid #E2E8F0;
-}
-
-/* Tombol download */
-.stDownloadButton button {
-    background-color: #2563EB;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-weight: 600;
-}
-
-.stDownloadButton button:hover {
-    background-color: #1D4ED8;
-    color: white;
-}
-
-/* Slider */
-.stSlider > div > div > div > div {
-    background-color: #2563EB;
-}
-
-/* Container */
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-}
-
-</style>
-""", unsafe_allow_html=True)
-
-# ======================
-# Membaca dataset
+# Membaca dataset dari GitHub
 # ======================
 DATA_PATH = "Data Penjualan Toko Buku.csv"
 df = pd.read_csv(DATA_PATH)
@@ -99,16 +18,16 @@ df = pd.read_csv(DATA_PATH)
 # ======================
 st.title("📚 Dashboard Segmentasi Pelanggan Toko Buku")
 st.markdown("""
-<div style='text-align:center; color:#64748B; margin-bottom:30px;'>
-Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan mengelompokkan pelanggan berdasarkan pola pembelian menggunakan <b>K-Means Clustering</b> tanpa mengubah fungsi aslinya.
-</div>
-""", unsafe_allow_html=True)
+Dashboard ini digunakan untuk menganalisis perilaku pelanggan toko buku dan mengelompokkan pelanggan berdasarkan pola pembelian menggunakan **K-Means Clustering**.
+""")
 
 # ======================
 # Pembersihan Data
 # ======================
 df = df.dropna()
 df = df.drop_duplicates()
+
+# Konversi tanggal
 df["tanggal pembelian"] = pd.to_datetime(df["tanggal pembelian"])
 
 # ======================
@@ -126,13 +45,13 @@ col4.metric("Total Pendapatan", f"Rp {df['total'].sum():,.0f}")
 # Preview Dataset
 # ======================
 st.subheader("📋 Preview Dataset")
-st.dataframe(df.head(), use_container_width=True)
+st.dataframe(df.head())
 
 # ======================
 # Statistik Deskriptif
 # ======================
 st.subheader("📈 Statistik Deskriptif")
-st.dataframe(df[["jumlah", "total"]].describe(), use_container_width=True)
+st.dataframe(df[["jumlah", "total"]].describe())
 
 # ======================
 # Membuat Data Pelanggan
@@ -192,10 +111,10 @@ col2.metric("Davies-Bouldin Index", f"{dbi:.4f}")
 # Hasil Segmentasi
 # ======================
 st.subheader("📌 Hasil Segmentasi Pelanggan")
-st.dataframe(customer, use_container_width=True)
+st.dataframe(customer)
 
 # ======================
-# Visualisasi Cluster (tetap sama)
+# Visualisasi Cluster
 # ======================
 st.subheader("🎨 Visualisasi Cluster")
 
@@ -219,7 +138,7 @@ st.pyplot(fig)
 st.subheader("🏆 Top 10 Pelanggan dengan Total Belanja Tertinggi")
 
 top_customers = customer.sort_values(by="Total_Belanja", ascending=False).head(10)
-st.dataframe(top_customers, use_container_width=True)
+st.dataframe(top_customers)
 
 # ======================
 # Ringkasan Cluster
@@ -233,7 +152,7 @@ summary = customer.groupby("Cluster").agg(
     Rata_Total_Belanja=("Total_Belanja", "mean")
 ).reset_index()
 
-st.dataframe(summary, use_container_width=True)
+st.dataframe(summary)
 
 # ======================
 # Interpretasi Cluster
