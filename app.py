@@ -184,20 +184,63 @@ st.dataframe(summary)
 # ======================
 # Interpretasi Cluster
 # ======================
-st.subheader("💡 Interpretasi Cluster")
+st.subheader("💡 Interpretasi Cluster Pelanggan")
+
+# Nilai rata-rata keseluruhan sebagai pembanding
+avg_freq = customer["Frekuensi_Transaksi"].mean()
+avg_belanja = customer["Total_Belanja"].mean()
 
 for i in range(n_clusters):
     row = summary[summary["Cluster"] == i].iloc[0]
 
-    st.write(f"### Cluster {i}")
-
-    if row["Rata_Total_Belanja"] > summary["Rata_Total_Belanja"].mean():
-        st.success("Pelanggan Loyal: sering membeli buku dan memiliki total belanja tinggi.")
-    elif row["Rata_Frekuensi"] > summary["Rata_Frekuensi"].mean():
-        st.info("Pelanggan Potensial: cukup sering bertransaksi dan berpotensi menjadi pelanggan loyal.")
+    # Menentukan kategori pelanggan
+    if row["Rata_Total_Belanja"] > avg_belanja and row["Rata_Frekuensi"] > avg_freq:
+        icon = "👑"
+        title = "Pelanggan Loyal"
+        color = "#E8F5E9"
+        recommendation = "Berikan program loyalitas, diskon eksklusif, dan rekomendasi buku premium."
+    elif row["Rata_Frekuensi"] > avg_freq:
+        icon = "🌟"
+        title = "Pelanggan Potensial"
+        color = "#E3F2FD"
+        recommendation = "Tingkatkan pembelian dengan promo bundling dan rekomendasi buku yang relevan."
     else:
-        st.warning("Pelanggan Pasif: jarang bertransaksi dan perlu strategi promosi untuk meningkatkan pembelian.")
+        icon = "📌"
+        title = "Pelanggan Pasif"
+        color = "#FFF3E0"
+        recommendation = "Gunakan strategi promosi dan diskon untuk menarik pelanggan kembali bertransaksi."
 
+    # Membuat kartu interpretasi modern
+    st.markdown(
+        f"""
+        <div style="
+            background-color:{color};
+            padding:20px;
+            border-radius:15px;
+            margin-bottom:15px;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+        ">
+            <h3 style="margin:0;">{icon} Cluster {i} — {title}</h3>
+            <p style="margin-top:10px;">
+                <b>Jumlah Pelanggan:</b> {int(row["Jumlah_Pelanggan"])} pelanggan
+            </p>
+            <p>
+                <b>Rata-rata Frekuensi:</b> {row["Rata_Frekuensi"]:.2f}
+            </p>
+            <p>
+                <b>Rata-rata Jumlah Buku:</b> {row["Rata_Jumlah_Buku"]:.2f}
+            </p>
+            <p>
+                <b>Rata-rata Total Belanja:</b> Rp {row["Rata_Total_Belanja"]:,.0f}
+            </p>
+            <hr style="border:0;border-top:1px solid #ddd;">
+            <p>
+                <b>Rekomendasi Strategi:</b> {recommendation}
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 # ======================
 # Download Hasil
 # ======================
